@@ -1,33 +1,34 @@
-name: Daily Yahoo → Snowflake
+name: Daily Yahoo Top50 Update
 
+# 定时触发和手动触发
 on:
   schedule:
-    - cron: "0 21 * * *"   # 每天早上8点(AEST)运行（UTC 21点）
+    - cron: "0 22 * * *" # 每天悉尼时间上午 9 点 (UTC+11)
   workflow_dispatch:
 
 jobs:
-  run-python:
+  update-data:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
+    steps:
+      # 1️⃣ 拉取最新代码
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2️⃣ 设置 Python 环境
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
+      # 3️⃣ 安装依赖
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install yahooquery snowflake-connector-python python-dotenv pandas
 
-      - name: Run Yahoo Fetch + Upload
-        run: |
-          python data_fetch.py
-          python upload_to_snowflake.py
-        env:
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      # 4️⃣ 抓取前 50 股票数据
+      - name: Fetch data from Yahoo Finance
+        run: python fetch_yahoo_data.py
+
+      # 5️⃣ 上传数据到 Snowflake
+      - name: Upload data to Snowflake
+        run: python upload_to_snowflake.py
